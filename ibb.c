@@ -7,6 +7,7 @@
 #define FILESIZE_OFFSET 0x02
 #define DATA_OFFSET_OFFSET 0x0A
 
+#define HEADER_SIZE_OFFSET 0x0E
 #define WIDTH_OFFSET 0x12
 #define HEIGHT_OFFSET 0x16
 #define BPP_OFFSET 0x1C
@@ -63,18 +64,45 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-
-	
 	fseek(fp2, BMSIG_OFFSET, SEEK_SET);
 	fread(tmpbytes2, 1, 2, fp2);
 
-	if (tmpbytes2[0] != 'B' || tmpbytes2[1] != 'M')
+	if (tmpbytes2[0] != 0x42 || tmpbytes2[1] != 0x4D)
 	{
 		printf("The second file is not a .BMP file\n");
 		fclose(fp1);
 		fclose(fp2);
 		return 1;
 	}
+
+
+	/*check that both img is using BITMAPINFOHEADER*/
+	uint32_t headersize1 = 0;
+	uint32_t headersize2 = 0;
+	
+	fseek(fp1, HEADER_SIZE_OFFSET, SEEK_SET);
+	fread(&headersize1, 4, 1, fp1);
+	swapbytes32(headersize1);
+	if (headersize1 != 40)
+	{
+		printf("The first file does not use BITMAPINFOHEADER\n");
+		fclose(fp1);
+		fclose(fp2);
+		return 1;
+	}
+
+	fseek(fp2, HEADER_SIZE_OFFSET, SEEK_SET);
+	fread(&headersize2, 4, 1, fp2);
+	swapbytes32(headersize2);
+	if (headersize1 != 40)
+	{
+		printf("The second file does not use BITMAPINFOHEADER\n");
+		fclose(fp1);
+		fclose(fp2);
+		return 1;
+	}
+/*TODO chek for other headers*/
+	
 
 	/*find size of both the files*/
 
@@ -143,6 +171,7 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
+	/*check that both images dont use compression*/
 	uint32_t compressionvalue = 0;
 	
 	fseek(fp1, COMPRESSION_OFFSET, SEEK_SET);
@@ -165,32 +194,41 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
+	/*get data offset for both files*/
+	uint32_t dataoffset1 = 0;
+	uint32_t dataoffset2 = 0;
 	
-	/*initialise and read into array of bytes for each image*/
-/*	uint8_t img1[filesize1];
-	uint8_t img2[filesize2];
+	fseek(fp1, DATA_OFFSET_OFFSET, SEEK_SET);
+	fread(&dataoffset1, 4, 1, fp1);
+	swapbytes32(dataoffset1);
 
-	fread(&img1, 1, filesize1, fp1);
-	fread(&img2, 1, filesize2, fp2);
 
-	uint8_t 
-*/
+	fseek(fp2, DATA_OFFSET_OFFSET, SEEK_SET);
+	fread(&dataoffset2, 4, 1, fp2);
+	swapbytes32(dataoffset2);
+
+	/*read images into memory 2d array*/
+	uint8_t imgarray1[imght1][imgwd1];
+	uint8_t imgarray2[imght2][imgwd2];
+	
+	fseek(fp1, dataoffset1, SEEK_SET);
+	fread(imgarray1, 1, imght1*imgwd1, fp1);
+
+	
+	fseek(fp2, dataoffset2, SEEK_SET);
+	fread(imgarray2, 1, imght2*imgwd2, fp2);
+
+/*TODO setup the operands*/
+
+
+
+	
 	/*close files*/
 	fclose(fp1);
 	fclose(fp2);
-/*
 
-	for(unsigned long i = 0; i<14; i++)
-	{
-		printf("%x\n", img1[i]);
-	}	
-
-	for(unsigned long i = 0; i<14; i++)
-	{
-		printf("%x\n", img2[i]);
-	}
-
-*/	
+/*TODO write to a file*/
+	
 	return 0;
 }
 
@@ -208,3 +246,5 @@ uint16_t swapbytes16 (uint16_t a)
 	a = ((a & 0x00FF) << 8) | ((a & 0xFF00) >> 8);
 	return a;
 } 
+
+
