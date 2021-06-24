@@ -19,9 +19,9 @@ uint16_t swapbytes16 (uint16_t a);
 
 int main(int argc, char *argv[])
 {
-	/*looks for 2 command line arguments.*/
+	/*looks for 3 command line arguments.*/
 	
-	if (argc != 3) 
+	if (argc != 4) 
 	{
 		printf("Only input 3 command line arguments!\n");
 		/*TODO print_help();*/
@@ -47,7 +47,6 @@ int main(int argc, char *argv[])
 	}
 
 
-	uint8_t tmpbytes4[4];
 	uint8_t tmpbytes2[2];
 
 	/*check if bitmap signature present*/
@@ -217,10 +216,33 @@ int main(int argc, char *argv[])
 	
 	fseek(fp2, dataoffset2, SEEK_SET);
 	fread(imgarray2, 1, imght2*imgwd2, fp2);
-
+/*TODO crop larger photo to be same width and height as smaller*/
 /*TODO setup the operands*/
 
+	char operator[4];
+	
+	if(strcmp(argv[3], "&") == 0 || strcmp(argv[3], "and") == 0 || strcmp(argv[3], "AND") == 0)
+	{
+		strcpy(operator, "and");
+	}
 
+	else if(strcmp(argv[3], "|") == 0 || strcmp(argv[3], "or") == 0 || strcmp(argv[3], "OR") == 0)
+	{
+		strcpy(operator, "or");
+	}
+
+	else if(strcmp(argv[3], "^") == 0 || strcmp(argv[3], "xor") == 0 ||strcmp(argv[3], "XOR") == 0)
+	{
+		strcpy(operator, "xor");
+	}
+
+	else 
+	{
+		printf("No valid operator given!\n");
+		fclose(fp1);
+		fclose(fp2);
+		return 1;
+	}
 
 	
 	/*close files*/
