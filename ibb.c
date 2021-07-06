@@ -229,7 +229,7 @@ int main(int argc, char *argv[])
 	
 	
 	/*read images into memory 2d array*/
-	uint8_t *img1arr = (uint8_t *)malloc(imgwd1padded * imght1);
+	uint8_t *img1arr = (uint8_t *)malloc(imgwd1padded * imght1 * sizeof(uint8_t));
 	if(img1arr == NULL)
 	{
 		printf("Memory allocation failed");
@@ -237,8 +237,12 @@ int main(int argc, char *argv[])
 		fclose(fp2);
 		return 1;
 	}
+	fseek(fp1, dataoffset1, SEEK_SET);
+	fread(img1arr, sizeof(uint8_t), imgwd1padded * imght1, fp1);
 
-	uint8_t *img2arr = (uint8_t *)malloc(imgwd2padded * imght2);
+
+	
+	uint8_t *img2arr = (uint8_t *)malloc(imgwd2padded * imght2 * sizeof(uint8_t));
 	if(img2arr == NULL)
 	{
 		printf("Memory allocation failed");
@@ -247,6 +251,9 @@ int main(int argc, char *argv[])
 		fclose(fp2);
 		return 1;
 	}
+	
+	fseek(fp2, dataoffset2, SEEK_SET);
+	fread(img2arr, sizeof(uint8_t), imgwd2padded * imght2, fp2);
 
 	/*set img3 to smaller size*/
 
@@ -284,8 +291,8 @@ int main(int argc, char *argv[])
 		imgwd3padded = imgwd3;
 	}
 
-	/*alloc memory for img3*/
-	uint8_t *img3arr = (uint8_t *)malloc(imgwd3padded * imght3);
+	/*allocate memory for img3*/
+	uint8_t *img3arr = (uint8_t *)malloc(imgwd3padded * imght3 * sizeof(uint8_t));
 	if (img3arr == NULL)
 	{
 		printf("Memory allocation failed");
@@ -296,10 +303,11 @@ int main(int argc, char *argv[])
 		fclose(fp2);
 		return 1;
 	}
+
 	
 	
 /*TODO crop larger photo to be same width and height as smaller*/
-
+	
 
 	/*Read operator from cmd line arguments*/
 	char operator[4];
