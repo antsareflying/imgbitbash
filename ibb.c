@@ -17,6 +17,7 @@
 
 uint32_t swapbytes32 (uint32_t a);
 uint16_t swapbytes16 (uint16_t a);
+int checkendian(void);
 
 int main(int argc, char *argv[])
 {
@@ -30,9 +31,11 @@ int main(int argc, char *argv[])
 	}
 
 	errno = 0;
+	FILE *fp2 = fopen(argv[2], "rb");
+	
 	/*opens the img files given in cmd line args*/
 	FILE *fp1 = fopen(argv[1], "rb");
-	FILE *fp2 = fopen(argv[2], "rb");
+
 	if (fp1 == NULL)
 	{
 		printf("Error accessing first file errno %d: %s\n", errno, strerror(errno));
@@ -121,8 +124,8 @@ int main(int argc, char *argv[])
 
 	/*find height of images*/
 
-	uint32_t imght1 = 0;
-	uint32_t imght2 = 0;
+	int32_t imght1 = 0;
+	int32_t imght2 = 0;
 
 	fseek(fp1, HEIGHT_OFFSET, SEEK_SET);
 	fread(&imght1, 4, 1, fp1);
@@ -135,8 +138,8 @@ int main(int argc, char *argv[])
 
 
 	/*find width of images*/
-	uint32_t imgwd1 = 0;
-	uint32_t imgwd2 = 0;
+	int32_t imgwd1 = 0;
+	int32_t imgwd2 = 0;
 
 	fseek(fp1, WIDTH_OFFSET, SEEK_SET);
 	fread(&imgwd1, 4, 1, fp1);
@@ -208,7 +211,7 @@ int main(int argc, char *argv[])
 	swapbytes32(dataoffset2);
 
 	/*find size of padded widths*/
-	uint32_t imgwd1padded, imgwd2padded;
+	int32_t imgwd1padded, imgwd2padded;
 	if((imgwd1%4) != 0)
 	{
 		imgwd1padded = imgwd1 + (4 - (imgwd1 % 4));	
@@ -255,12 +258,12 @@ int main(int argc, char *argv[])
 	fseek(fp2, dataoffset2, SEEK_SET);
 	fread(img2arr, sizeof(uint8_t), imgwd2padded * imght2, fp2);
 
-	/*set img3 to bigger size*/
+	/*set img3 to smaller size*/
 
-	uint32_t imght3, imgwd3;
+	int32_t imght3, imgwd3;
 
 	/*set imght3*/
-	if(imght1 >= imght2)
+	if(imght1 <= imght2)
 	{
 		imght3 = imght1;
 	}
@@ -270,7 +273,7 @@ int main(int argc, char *argv[])
 	}
 
 	/*set imgwd3*/
-	if(imgwd1 >= imgwd2)
+	if(imgwd1 <= imgwd2)
 	{
 		imgwd3 = imgwd1;
 	}
@@ -280,7 +283,7 @@ int main(int argc, char *argv[])
 	}
 
 	/*size of padded imgwd2padded*/
-	uint32_t imgwd3padded = 0;
+	int32_t imgwd3padded = 0;
 
 	if((imgwd3%4) != 0)
 	{
@@ -292,11 +295,10 @@ int main(int argc, char *argv[])
 	}
 
 	/*allocate memory for img3*/
-	uint8_t *img3arr = (uint8_t *)malloc(imgwd3padded * imght3 * sizeof(uint8_t));
+	uint8_t *img3arr = (uint8_t *)malloc(imgwd3padded * imght3);
 	if (img3arr == NULL)
 	{
 		printf("Memory allocation failed");
-		
 		free(img1arr);
 		free(img2arr);
 		fclose(fp1);
@@ -305,9 +307,6 @@ int main(int argc, char *argv[])
 	}
 
 
-	
-	
-	
 
 	/*Read operator from cmd line arguments*/
 	char operator[4];
@@ -339,23 +338,90 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	
-	/*close files*/
+	/* bashing the bits together*/
+	for (int32_t i = 0; i < (imgwd3padded * imght3); i++)
+	{
+		if(!strcmp(operator, "and"))
+		{
+			img3arr[i] = img1arr[i] & img2arr[i];
+		}
+
+		
+		if(!strcmp(operator, "or"))
+		{
+			img3arr[i] = img1arr[i] | img2arr[i];
+		}
+
+		
+		if(!strcmp(operator, "xor"))
+		{
+			img3arr[i] = img1arr[i] ^ img2arr[i];
+		}
+	}
 	
 	free(img1arr);
 	free(img2arr);
+
+
+	/*writing new image to file*/
+	FILE *fp3 = fopen("output.bmp", "wb");
+	
+	uint32_t filesize3 =(54) + (imgwd3padded * imght3);
+	uint32_t reserved = 0;
+	uint32_t dataoffset3 = 54;
+	uint32_t bmpheadersize = 40;
+	uint16_t colorplanes = 1;	uint16_t bppvalue3 = 24;
+	uint32_t compressionvalue3 = 0;
+	uint32_t imagesize3 = (imght3 * imgwd3padded);
+	int32_t horizres = 0;
+	int32_t vertres = 0;
+	uint32_t colorpalatte = 0;
+	uint32_t impcolors = 0;
+
+
+	if (checkendian() == 2)
+	{
+		swapbytes32(filesize3);
+		swapbytes32(bmpheadersize);
+		swapbytes32(imgwd3padded);
+		swapbytes32(imght3);
+		swapbytes16(colorplanes);
+		swapbytes16(bppvalue3);
+		swapbytes32(imagesize3);
+	}
+
+	tmpbytes2[0] = 0x42;
+	tmpbytes2[1] = 0x4D;
+	fwrite(tmpbytes2, 2, 1, fp3);
+	fwrite(&filesize3, 4, 1, fp3);
+	fwrite(&reserved, 4, 1, fp3);
+	fwrite(&dataoffset3, 4, 1, fp3);
+	fwrite(&bmpheadersize, 4, 1, fp3);
+	fwrite(&imgwd3padded, 4, 1, fp3);
+	fwrite(&imght3, 4, 1, fp3);
+	fwrite(&colorplanes, 2, 1, fp3);
+	fwrite(&bppvalue3, 2, 1, fp3);
+	fwrite(&compressionvalue3, 4, 1, fp3);
+	fwrite(&imagesize3, 4, 1, fp3);
+	fwrite(&horizres, 4, 1, fp3);
+	fwrite(&vertres, 4, 1, fp3);
+	fwrite(&colorpalatte, 4, 1, fp3);
+	fwrite(&impcolors, 4, 1, fp3);
+	
+	fwrite(img3arr, 1, (imgwd3padded * imght3), fp3);
+
+
+	/*cleanup*/
+	fclose(fp3);
 	free(img3arr);
 	fclose(fp1);
 	fclose(fp2);
-/*TODO combine img1arr and img2arr using operator to make
-img3arr*/
 
-/*TODO write img3 to a file*/
 	
 	return 0;
 }
 
-uint32_t swapbytes32 (uint32_t a)
+uint32_t swapbytes32(uint32_t a)
 {
 	a = ((a & 0x000000FF) << 24) |
 		((a & 0x0000FF00) << 8) |
@@ -364,10 +430,22 @@ uint32_t swapbytes32 (uint32_t a)
 	return a;
 } 
 
-uint16_t swapbytes16 (uint16_t a)
+uint16_t swapbytes16(uint16_t a)
 {
 	a = ((a & 0x00FF) << 8) | ((a & 0xFF00) >> 8);
 	return a;
 } 
 
+int checkendian(void)
+{
+	int num = 1;
+	if(*(char *)&num == 1)
+	{
+		return 1;  //little
+	}
+	else
+	{
+		return 2;  //big
+	}
+}
 
