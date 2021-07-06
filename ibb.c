@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <errno.h>
 #include <string.h>
+#include <stdlib.h>
 
 #define BMSIG_OFFSET 0x00
 #define FILESIZE_OFFSET 0x02
@@ -100,7 +101,7 @@ int main(int argc, char *argv[])
 		fclose(fp2);
 		return 1;
 	}
-/*TODO chek for other headers*/
+/*TODO check for other headers*/
 	
 
 	/*find size of both the files*/
@@ -206,19 +207,88 @@ int main(int argc, char *argv[])
 	fread(&dataoffset2, 4, 1, fp2);
 	swapbytes32(dataoffset2);
 
+	/*find size of padded widths*/
+	uint32_t imgwd1padded, imgwd2padded;
+	if((imgwd1%4) != 0)
+	{
+		imgwd1padded = imgwd1 + (4 - (imgwd1 % 4));	
+	}
+	else
+	{
+		imgwd1padded = imgwd1;
+	}
+
+	if((imgwd2%4) != 0)
+	{
+		imgwd2padded = imgwd2 + (4 - (imgwd2 % 4));	
+	}
+	else
+	{
+		imgwd2padded = imgwd2;
+	}
+	
+	
 	/*read images into memory 2d array*/
-	uint8_t imgarray1[imght1][imgwd1];
-	uint8_t imgarray2[imght2][imgwd2];
-	
-	fseek(fp1, dataoffset1, SEEK_SET);
-	fread(imgarray1, 1, imght1*imgwd1, fp1);
+	uint8_t *img1arr = (uint8_t *)malloc(imgwd1padded * imght1);
+	if(img1arr == NULL)
+	{
+		printf("Memory allocation failed");
+		fclose(fp1);
+		fclose(fp2);
+		return 1;
+	}
+
+	uint8_t *img2arr = (uint8_t *)malloc(imgwd2padded * imght2);
+	if(img2arr == NULL)
+	{
+		printf("Memory allocation failed");
+		fclose(fp1);
+		fclose(fp2);
+		return 1;
+	}
+
+	/*set img3 to smaller size*/
+
+	uint32_t imght3, imgwd3;
+
+	/*set imght3*/
+	if(imght1 <= imght2)
+	{
+		imght3 = imght1;
+	}
+	else
+	{
+		imght3 = imght2;
+	}
+
+	/*set imgwd3*/
+	if(imgwd1 <= imgwd2)
+	{
+		imgwd3 = imgwd1;
+	}
+	else
+	{
+		imgwd3 = imgwd2;
+	}
+
+	/*size of padded imgwd2padded*/
+	uint32_t imgwd3padded = 0;
+
+	if((imgwd3%4) != 0)
+	{
+		imgwd3padded = imgwd3 + (4 - (imgwd3 % 4));
+	}
+	else
+	{
+		imgwd3padded = imgwd3;
+	}
+
 
 	
-	fseek(fp2, dataoffset2, SEEK_SET);
-	fread(imgarray2, 1, imght2*imgwd2, fp2);
 /*TODO crop larger photo to be same width and height as smaller*/
-/*TODO setup the operands*/
 
+
+	/*Read operator from cmd line arguments*/
 	char operator[4];
 	
 	if(strcmp(argv[3], "&") == 0 || strcmp(argv[3], "and") == 0 || strcmp(argv[3], "AND") == 0)
@@ -246,10 +316,14 @@ int main(int argc, char *argv[])
 
 	
 	/*close files*/
+	free(img1arr);
+	free(img2arr);
 	fclose(fp1);
 	fclose(fp2);
+/*TODO combine img1arr and img2arr using operator to make
+img3arr*/
 
-/*TODO write to a file*/
+/*TODO write img3 to a file*/
 	
 	return 0;
 }
