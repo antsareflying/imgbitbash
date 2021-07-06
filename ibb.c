@@ -242,6 +242,7 @@ int main(int argc, char *argv[])
 	if(img2arr == NULL)
 	{
 		printf("Memory allocation failed");
+		free(img1arr);
 		fclose(fp1);
 		fclose(fp2);
 		return 1;
@@ -283,7 +284,19 @@ int main(int argc, char *argv[])
 		imgwd3padded = imgwd3;
 	}
 
-
+	/*alloc memory for img3*/
+	uint8_t *img3arr = (uint8_t *)malloc(imgwd3padded * imght3);
+	if (img3arr == NULL)
+	{
+		printf("Memory allocation failed");
+		
+		free(img1arr);
+		free(img2arr);
+		fclose(fp1);
+		fclose(fp2);
+		return 1;
+	}
+	
 	
 /*TODO crop larger photo to be same width and height as smaller*/
 
@@ -309,6 +322,10 @@ int main(int argc, char *argv[])
 	else 
 	{
 		printf("No valid operator given!\n");
+
+		free(img1arr);
+		free(img2arr);
+		free(img3arr);
 		fclose(fp1);
 		fclose(fp2);
 		return 1;
@@ -316,8 +333,10 @@ int main(int argc, char *argv[])
 
 	
 	/*close files*/
+	
 	free(img1arr);
 	free(img2arr);
+	free(img3arr);
 	fclose(fp1);
 	fclose(fp2);
 /*TODO combine img1arr and img2arr using operator to make
