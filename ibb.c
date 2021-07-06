@@ -255,12 +255,12 @@ int main(int argc, char *argv[])
 	fseek(fp2, dataoffset2, SEEK_SET);
 	fread(img2arr, sizeof(uint8_t), imgwd2padded * imght2, fp2);
 
-	/*set img3 to smaller size*/
+	/*set img3 to bigger size*/
 
 	uint32_t imght3, imgwd3;
 
 	/*set imght3*/
-	if(imght1 <= imght2)
+	if(imght1 >= imght2)
 	{
 		imght3 = imght1;
 	}
@@ -270,7 +270,7 @@ int main(int argc, char *argv[])
 	}
 
 	/*set imgwd3*/
-	if(imgwd1 <= imgwd2)
+	if(imgwd1 >= imgwd2)
 	{
 		imgwd3 = imgwd1;
 	}
@@ -304,9 +304,9 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
+
 	
 	
-/*TODO crop larger photo to be same width and height as smaller*/
 	
 
 	/*Read operator from cmd line arguments*/
