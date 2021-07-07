@@ -341,7 +341,7 @@ int main(int argc, char *argv[])
 
 	/* bashing the bits together*/
 	
-	for (int32_t i = 0; i < 3/*imgheader3.info.height*/; i++)
+	for (int32_t i = 0; i < imgheader3.info.height; i++)
 	{
 		
 		for (int32_t j = 0; j < imgheader3.info.width * 3; j++)
@@ -349,24 +349,24 @@ int main(int argc, char *argv[])
 			if(!strcmp(operator, "and"))
 			{
 				img3arr[(i * imgheader3.info.width*3) + j] = 
-				img1arr[(i * imgheader3.info.width*3) + j] & img2arr[(i * imgheader3.info.width*3) + j];
+				img1arr[(i * imgheader3.info.width*3) + j] & 
+				img2arr[(i * imgheader3.info.width*3) + j];
 			}
 
 			if(!strcmp(operator, "or"))
 			{
 				img3arr[(i * imgheader3.info.width*3) + j] = 
-				img1arr[(i * imgheader3.info.width*3) + j] | img2arr[(i * imgheader3.info.width*3) + j];
+				img1arr[(i * imgheader3.info.width*3) + j] | 
+				img2arr[(i * imgheader3.info.width*3) + j];
 			}
 
 			if(!strcmp(operator, "xor"))
 			{
 				img3arr[(i * imgheader3.info.width*3) + j] = 
-				img1arr[(i * imgheader3.info.width*3) + j] ^ img2arr[(i * imgheader3.info.width*3) + j];
+				img1arr[(i * imgheader3.info.width*3) + j] ^ 
+				img2arr[(i * imgheader3.info.width*3) + j];
 			}
-			printf("iterated pixels %d times\n", j);
-			printf("printingcharacter %x", img3arr[(i*imgheader3.info.width*3)+j]);
 		}
-		printf("iterated rows %d times\n", i);
 	}
 	
 	free(img1arr);
