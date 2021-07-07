@@ -18,17 +18,17 @@ This program outputs 1 .bmp image that uses the BITMAPINFOHEADER, 24 bit colour,
 
 This program takes a bitwise operator as its third argument. It can either be:
 
-+XOR
-	+XOR
-	+xor
-	+^
-+OR
-	+OR
-	+or
-	+|(this is not recommended as it affects the shell)
-+AND
-	+AND
-	+and
-	+&
++ XOR
+	+ XOR
+	+ xor
+	+ ^
++ OR
+	+ OR
+	+ or
+	+ |(this is not recommended as it affects the shell)
++ AND
+	+ AND
+	+ and
+	+ &
 
 
