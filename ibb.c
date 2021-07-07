@@ -18,6 +18,7 @@
 uint32_t swapbytes32 (uint32_t a);
 uint16_t swapbytes16 (uint16_t a);
 int checkendian(void);
+void print_help(void);
 
 int main(int argc, char *argv[])
 {
@@ -25,8 +26,8 @@ int main(int argc, char *argv[])
 	
 	if (argc != 4) 
 	{
-		printf("Only input 3 command line arguments!\n");
-		/*TODO print_help();*/
+		printf("Only input 3 command line arguments!\n\n");
+		print_help();
 		return 1;
 	}
 
@@ -449,3 +450,10 @@ int checkendian(void)
 	}
 }
 
+void print_help(void)
+{
+	printf("IBB: Image Bit Bashing\n"
+	"Usage: ibb [image1.bmp] [image2.bmp] [operator]\n"
+	"Opertators:\nXOR, xor, ^\nOR, or, |\nAND, and, &\n");
+	
+}
