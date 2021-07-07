@@ -20,6 +20,36 @@ uint16_t swapbytes16 (uint16_t a);
 int checkendian(void);
 void print_help(void);
 
+typedef struct BITMAPFILEHEADER
+{
+	uint16_t bmsigbytes;
+	uint32_t filesize;
+	uint32_t reserved;
+	uint32_t dataoffset;
+} __attribute__((packed)) BITMAPFILEHEADER_T ;
+
+typedef struct BITMAPINFOHEADER
+{
+	uint32_t headersize;
+	int32_t width;
+	int32_t height;
+	uint16_t colorplanes;
+	uint16_t bitsperpixel;
+	uint32_t compression;
+	uint32_t imagesize;
+	int32_t horizres;
+	int32_t vertres;
+	uint32_t colorpalatte;
+	uint32_t impcolors;
+} __attribute__((packed)) BITMAPINFOHEADER_T ;
+
+typedef struct BITMAPHEADER
+{
+	BITMAPFILEHEADER_T file;
+	BITMAPINFOHEADER_T info;
+} __attribute__((packed)) BITMAPHEADER_T;
+
+
 int main(int argc, char *argv[])
 {
 	/*looks for 3 command line arguments.*/
@@ -31,12 +61,39 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
+	/*Read operator from cmd line arguments*/
+	char operator[4];
+	
+	if(strcmp(argv[3], "&") == 0 || strcmp(argv[3], "and") == 0 || strcmp(argv[3], "AND") == 0)
+	{
+		strcpy(operator, "and");
+	}
+
+	else if(strcmp(argv[3], "|") == 0 || strcmp(argv[3], "or") == 0 || strcmp(argv[3], "OR") == 0)
+	{
+		strcpy(operator, "or");
+	}
+	
+	else if(strcmp(argv[3], "^") == 0 || strcmp(argv[3], "xor") == 0 ||strcmp(argv[3], "XOR") == 0)
+	{
+		strcpy(operator, "xor");
+	}
+
+	else 
+	{
+		printf("No valid operator given!\n");
+		print_help();
+		return 1;
+	}
+
+
 	errno = 0;
-	FILE *fp2 = fopen(argv[2], "rb");
 	
 	/*opens the img files given in cmd line args*/
 	FILE *fp1 = fopen(argv[1], "rb");
 
+	FILE *fp2 = fopen(argv[2], "rb");
+	
 	if (fp1 == NULL)
 	{
 		printf("Error accessing first file errno %d: %s\n", errno, strerror(errno));
@@ -51,16 +108,16 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
+	/*read header into structs*/
+	BITMAPHEADER_T imgheader1, imgheader2;
 
-	uint8_t tmpbytes2[2];
+
+	fread(&imgheader1, 1, sizeof(imgheader1), fp1);
+	fread(&imgheader2, sizeof(imgheader2), 1, fp2);
 
 	/*check if bitmap signature present*/
 
-
-	fseek(fp1, BMSIG_OFFSET, SEEK_SET);
-	fread(tmpbytes2, 1, 2, fp1);
-
-	if (tmpbytes2[0] != 0x42 || tmpbytes2[1] != 0x4D)
+	if (imgheader1.file.bmsigbytes != 0x4D42)
 	{
 		printf("The first file is not a .BMP file\n");
 		fclose(fp1);
@@ -68,10 +125,8 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	fseek(fp2, BMSIG_OFFSET, SEEK_SET);
-	fread(tmpbytes2, 1, 2, fp2);
 
-	if (tmpbytes2[0] != 0x42 || tmpbytes2[1] != 0x4D)
+	if (imgheader2.file.bmsigbytes != 0x4D42)
 	{
 		printf("The second file is not a .BMP file\n");
 		fclose(fp1);
@@ -81,13 +136,13 @@ int main(int argc, char *argv[])
 
 
 	/*check that both img is using BITMAPINFOHEADER*/
-	uint32_t headersize1 = 0;
-	uint32_t headersize2 = 0;
+	if(checkendian() == 2)
+	{
+		swapbytes32(imgheader1.info.headersize);
+		swapbytes32(imgheader2.info.headersize);
+	}
 	
-	fseek(fp1, HEADER_SIZE_OFFSET, SEEK_SET);
-	fread(&headersize1, 4, 1, fp1);
-	swapbytes32(headersize1);
-	if (headersize1 != 40)
+	if (imgheader1.info.headersize != 40)
 	{
 		printf("The first file does not use BITMAPINFOHEADER\n");
 		fclose(fp1);
@@ -95,67 +150,33 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	fseek(fp2, HEADER_SIZE_OFFSET, SEEK_SET);
-	fread(&headersize2, 4, 1, fp2);
-	swapbytes32(headersize2);
-	if (headersize1 != 40)
+
+	
+	if (imgheader2.info.headersize != 40)
 	{
 		printf("The second file does not use BITMAPINFOHEADER\n");
 		fclose(fp1);
 		fclose(fp2);
 		return 1;
 	}
-/*TODO check for other headers*/
+	/*TODO check for other headers*/
 	
-
-	/*find size of both the files*/
-
-	uint32_t filesize1 = 0;
-	uint32_t filesize2 = 0;
-	
-			
-	fseek(fp1, FILESIZE_OFFSET, SEEK_SET);
-	fread(&filesize1, 4, 1, fp1);
-	swapbytes32(filesize1);
-	
-
-	fseek(fp2, FILESIZE_OFFSET, SEEK_SET);
-	fread(&filesize2, 4, 1, fp2);
-	swapbytes32(filesize2);
-
+	if(checkendian() == 2)
+	{
 	/*find height of images*/
-
-	int32_t imght1 = 0;
-	int32_t imght2 = 0;
-
-	fseek(fp1, HEIGHT_OFFSET, SEEK_SET);
-	fread(&imght1, 4, 1, fp1);
-	swapbytes32(imght1);
-
-	fseek(fp2, HEIGHT_OFFSET, SEEK_SET);
-	fread(&imght2, 4, 1, fp2);
-	swapbytes32(imght2);
-
-
-
+		swapbytes32(imgheader1.info.height);
+		swapbytes32(imgheader2.info.height);
 	/*find width of images*/
-	int32_t imgwd1 = 0;
-	int32_t imgwd2 = 0;
-
-	fseek(fp1, WIDTH_OFFSET, SEEK_SET);
-	fread(&imgwd1, 4, 1, fp1);
-	swapbytes32(imgwd1);
-
-	fseek(fp2, WIDTH_OFFSET, SEEK_SET);
-	fread(&imgwd2, 4, 1, fp2);
-	swapbytes32(imgwd2);
+		swapbytes32(imgheader1.info.width);
+		swapbytes32(imgheader2.info.width);
+	}
 
 	/*check that both images use 24 bit colour*/
-	uint16_t bppvalue = 0;
-	
-	fseek(fp1, BPP_OFFSET, SEEK_SET);
-	fread(&bppvalue, 2, 1, fp1);
-	if(bppvalue != 24)
+	if (checkendian() == 2)
+	{
+		swapbytes16(imgheader1.info.bitsperpixel);
+	}
+	if(imgheader1.info.bitsperpixel != 24)
 	{
 		printf("First image is not using a 24 bit color!\n");
 		fclose(fp1);
@@ -163,11 +184,12 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	bppvalue = 0;
-	
-	fseek(fp2, BPP_OFFSET, SEEK_SET);
-	fread(&bppvalue, 2, 1, fp2);
-	if(bppvalue != 24)
+	if(checkendian() == 2)
+	{
+		swapbytes16(imgheader2.info.bitsperpixel);
+	}
+
+	if(imgheader2.info.bitsperpixel != 24)
 	{
 		printf("Second image is not using a 24 bit color!\n");
 		fclose(fp1);
@@ -176,11 +198,12 @@ int main(int argc, char *argv[])
 	}
 
 	/*check that both images dont use compression*/
-	uint32_t compressionvalue = 0;
-	
-	fseek(fp1, COMPRESSION_OFFSET, SEEK_SET);
-	fread(&compressionvalue, 4, 1, fp1);
-	if(compressionvalue != 0)
+	if(checkendian() == 2)
+	{
+		swapbytes16(imgheader1.info.compression);
+	}
+		
+	if(imgheader1.info.compression != 0)
 	{
 		printf("First image is using compression!\n");
 		fclose(fp1);
@@ -188,9 +211,12 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	fseek(fp2, COMPRESSION_OFFSET, SEEK_SET);
-	fread(&compressionvalue, 4, 1, fp2);
-	if(compressionvalue != 0)
+	if(checkendian() == 2)
+	{
+		swapbytes16(imgheader2.info.compression);
+	}
+		
+	if(imgheader2.info.compression != 0)
 	{
 		printf("Second image is using compression!\n");
 		fclose(fp1);
@@ -199,41 +225,63 @@ int main(int argc, char *argv[])
 	}
 
 	/*get data offset for both files*/
-	uint32_t dataoffset1 = 0;
-	uint32_t dataoffset2 = 0;
-	
-	fseek(fp1, DATA_OFFSET_OFFSET, SEEK_SET);
-	fread(&dataoffset1, 4, 1, fp1);
-	swapbytes32(dataoffset1);
-
-
-	fseek(fp2, DATA_OFFSET_OFFSET, SEEK_SET);
-	fread(&dataoffset2, 4, 1, fp2);
-	swapbytes32(dataoffset2);
-
-	/*find size of padded widths*/
-	int32_t imgwd1padded, imgwd2padded;
-	if((imgwd1%4) != 0)
+	if(checkendian() == 2)
 	{
-		imgwd1padded = imgwd1 + (4 - (imgwd1 % 4));	
+		swapbytes32(imgheader1.file.dataoffset);
+
+		swapbytes32(imgheader2.file.dataoffset);
+	}
+
+
+	/*find no of padding bytes*/
+	int32_t imgwd1padding, imgwd2padding;
+	if(((imgheader1.info.width*3)%4) != 0)
+	{
+		imgwd1padding = (4 - ((imgheader1.info.width * 3) % 4));	
 	}
 	else
 	{
-		imgwd1padded = imgwd1;
+		imgwd1padding = 0;
 	}
 
-	if((imgwd2%4) != 0)
+	if((imgheader1.info.width%4) != 0)
 	{
-		imgwd2padded = imgwd2 + (4 - (imgwd2 % 4));	
+		imgwd2padding = (4 - ((imgheader1.info.width * 3) % 4));	
 	}
 	else
 	{
-		imgwd2padded = imgwd2;
+		imgwd2padding = 0;
+	}
+
+
+	BITMAPHEADER_T imgheader3;
+	/*set imght3 & imgwd3 to be smaller of the two*/
+
+	int imgwd3padding;
+
+	if(imgheader1.info.height <= imgheader2.info.height)
+	{
+		imgheader3.info.height = imgheader1.info.height;
+	}
+	else
+	{
+		imgheader3.info.height = imgheader2.info.height;
+	}
+
+	if(imgheader1.info.width <= imgheader2.info.width)
+	{
+		imgheader3.info.width = imgheader1.info.width;
+		imgwd3padding = imgwd1padding;
+	}
+	else
+	{
+		imgheader3.info.width = imgheader2.info.width;
+		imgwd3padding = imgwd2padding;
 	}
 	
 	
-	/*read images into memory 2d array*/
-	uint8_t *img1arr = (uint8_t *)malloc(imgwd1padded * imght1 * sizeof(uint8_t));
+	/*read images into memory array*/
+	uint8_t *img1arr = (uint8_t *)malloc(imgheader1.info.width * 3 * imgheader1.info.height);
 	if(img1arr == NULL)
 	{
 		printf("Memory allocation failed");
@@ -241,12 +289,17 @@ int main(int argc, char *argv[])
 		fclose(fp2);
 		return 1;
 	}
-	fseek(fp1, dataoffset1, SEEK_SET);
-	fread(img1arr, sizeof(uint8_t), imgwd1padded * imght1, fp1);
+	
+	fseek(fp1, imgheader1.file.dataoffset, SEEK_SET);
 
+	for(int i = 0; i < imgheader3.info.height; i++)
+	{
+		fread(img1arr, 1, imgheader3.info.width * 3, fp1);
+		fseek(fp1,(imgheader1.info.width - imgheader3.info.width + imgwd1padding) * 3, SEEK_CUR);
+	}
 
 	
-	uint8_t *img2arr = (uint8_t *)malloc(imgwd2padded * imght2 * sizeof(uint8_t));
+	uint8_t *img2arr = (uint8_t *)malloc(imgheader3.info.width * 3 * imgheader3.info.height);
 	if(img2arr == NULL)
 	{
 		printf("Memory allocation failed");
@@ -256,47 +309,24 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 	
-	fseek(fp2, dataoffset2, SEEK_SET);
-	fread(img2arr, sizeof(uint8_t), imgwd2padded * imght2, fp2);
+	fseek(fp2, imgheader2.file.dataoffset, SEEK_SET);
 
-	/*set img3 to smaller size*/
-
-	int32_t imght3, imgwd3;
-
-	/*set imght3*/
-	if(imght1 <= imght2)
+	for(int i = 0; i < imgheader3.info.height; i++)
 	{
-		imght3 = imght1;
-	}
-	else
-	{
-		imght3 = imght2;
+		fread(img2arr, 1, imgheader3.info.width * 3, fp2);
+		fseek(fp2, (imgheader2.info.width - imgheader3.info.width + imgwd2padding) * 3, SEEK_CUR);
 	}
 
-	/*set imgwd3*/
-	if(imgwd1 <= imgwd2)
-	{
-		imgwd3 = imgwd1;
-	}
-	else
-	{
-		imgwd3 = imgwd2;
-	}
 
-	/*size of padded imgwd2padded*/
+
+	/*size of padded imgwd3padded*/
 	int32_t imgwd3padded = 0;
 
-	if((imgwd3%4) != 0)
-	{
-		imgwd3padded = imgwd3 + (4 - (imgwd3 % 4));
-	}
-	else
-	{
-		imgwd3padded = imgwd3;
-	}
+	imgwd3padded = imgheader3.info.width + imgwd3padding;
+
 
 	/*allocate memory for img3*/
-	uint8_t *img3arr = (uint8_t *)malloc(imgwd3padded * imght3);
+	uint8_t *img3arr = (uint8_t *)malloc(imgwd3padded * 3 * imgheader3.info.height);
 	if (img3arr == NULL)
 	{
 		printf("Memory allocation failed");
@@ -307,57 +337,36 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-
-
-	/*Read operator from cmd line arguments*/
-	char operator[4];
-	
-	if(strcmp(argv[3], "&") == 0 || strcmp(argv[3], "and") == 0 || strcmp(argv[3], "AND") == 0)
-	{
-		strcpy(operator, "and");
-	}
-
-	else if(strcmp(argv[3], "|") == 0 || strcmp(argv[3], "or") == 0 || strcmp(argv[3], "OR") == 0)
-	{
-		strcpy(operator, "or");
-	}
-
-	else if(strcmp(argv[3], "^") == 0 || strcmp(argv[3], "xor") == 0 ||strcmp(argv[3], "XOR") == 0)
-	{
-		strcpy(operator, "xor");
-	}
-
-	else 
-	{
-		printf("No valid operator given!\n");
-
-		free(img1arr);
-		free(img2arr);
-		free(img3arr);
-		fclose(fp1);
-		fclose(fp2);
-		return 1;
-	}
+	memset(img3arr, 1, imgwd3padded * 3 * imgheader3.info.height);
 
 	/* bashing the bits together*/
-	for (int32_t i = 0; i < (imgwd3padded * imght3); i++)
+	
+	for (int32_t i = 0; i < 3/*imgheader3.info.height*/; i++)
 	{
-		if(!strcmp(operator, "and"))
-		{
-			img3arr[i] = img1arr[i] & img2arr[i];
-		}
-
 		
-		if(!strcmp(operator, "or"))
+		for (int32_t j = 0; j < imgheader3.info.width * 3; j++)
 		{
-			img3arr[i] = img1arr[i] | img2arr[i];
-		}
+			if(!strcmp(operator, "and"))
+			{
+				img3arr[(i * imgheader3.info.width*3) + j] = 
+				img1arr[(i * imgheader3.info.width*3) + j] & img2arr[(i * imgheader3.info.width*3) + j];
+			}
 
-		
-		if(!strcmp(operator, "xor"))
-		{
-			img3arr[i] = img1arr[i] ^ img2arr[i];
+			if(!strcmp(operator, "or"))
+			{
+				img3arr[(i * imgheader3.info.width*3) + j] = 
+				img1arr[(i * imgheader3.info.width*3) + j] | img2arr[(i * imgheader3.info.width*3) + j];
+			}
+
+			if(!strcmp(operator, "xor"))
+			{
+				img3arr[(i * imgheader3.info.width*3) + j] = 
+				img1arr[(i * imgheader3.info.width*3) + j] ^ img2arr[(i * imgheader3.info.width*3) + j];
+			}
+			printf("iterated pixels %d times\n", j);
+			printf("printingcharacter %x", img3arr[(i*imgheader3.info.width*3)+j]);
 		}
+		printf("iterated rows %d times\n", i);
 	}
 	
 	free(img1arr);
@@ -365,55 +374,43 @@ int main(int argc, char *argv[])
 
 
 	/*writing new image to file*/
+
 	FILE *fp3 = fopen("output.bmp", "wb");
-	
-	uint32_t filesize3 =(54) + (imgwd3padded * imght3);
-	uint32_t reserved = 0;
-	uint32_t dataoffset3 = 54;
-	uint32_t bmpheadersize = 40;
-	uint16_t colorplanes = 1;	uint16_t bppvalue3 = 24;
-	uint32_t compressionvalue3 = 0;
-	uint32_t imagesize3 = (imght3 * imgwd3padded);
-	int32_t horizres = 0;
-	int32_t vertres = 0;
-	uint32_t colorpalatte = 0;
-	uint32_t impcolors = 0;
+	imgheader3.file.bmsigbytes = 0x4D42;
+	imgheader3.file.filesize =(54) + (imgwd3padded * 3 * imgheader3.info.height);
+	imgheader3.file.reserved = 0;
+	imgheader3.info.width = imgwd3padded;
+	imgheader3.file.dataoffset = 54;
+	imgheader3.info.headersize = 40;
+	imgheader3.info.colorplanes = 1;	
+	imgheader3.info.bitsperpixel = 24;
+	imgheader3.info.compression = 0;
+	imgheader3.info.imagesize = (imgheader3.info.height * (imgwd3padded * 3));
+	imgheader3.info.horizres = 0;
+	imgheader3.info.vertres = 0;
+	imgheader3.info.colorpalatte = 0;
+	imgheader3.info.impcolors = 0;
 
 
 	if (checkendian() == 2)
 	{
-		swapbytes32(filesize3);
-		swapbytes32(bmpheadersize);
-		swapbytes32(imgwd3padded);
-		swapbytes32(imght3);
-		swapbytes16(colorplanes);
-		swapbytes16(bppvalue3);
-		swapbytes32(imagesize3);
+		swapbytes32(imgheader3.file.filesize);
+		swapbytes32(imgheader3.file.dataoffset);
+		swapbytes32(imgheader3.info.headersize);
+		swapbytes32(imgheader3.info.width);
+		swapbytes32(imgheader3.info.height);
+		swapbytes16(imgheader3.info.colorplanes);
+		swapbytes16(imgheader3.info.bitsperpixel);
+		swapbytes32(imgheader3.info.imagesize);
 	}
 
-	tmpbytes2[0] = 0x42;
-	tmpbytes2[1] = 0x4D;
-	fwrite(tmpbytes2, 2, 1, fp3);
-	fwrite(&filesize3, 4, 1, fp3);
-	fwrite(&reserved, 4, 1, fp3);
-	fwrite(&dataoffset3, 4, 1, fp3);
-	fwrite(&bmpheadersize, 4, 1, fp3);
-	fwrite(&imgwd3padded, 4, 1, fp3);
-	fwrite(&imght3, 4, 1, fp3);
-	fwrite(&colorplanes, 2, 1, fp3);
-	fwrite(&bppvalue3, 2, 1, fp3);
-	fwrite(&compressionvalue3, 4, 1, fp3);
-	fwrite(&imagesize3, 4, 1, fp3);
-	fwrite(&horizres, 4, 1, fp3);
-	fwrite(&vertres, 4, 1, fp3);
-	fwrite(&colorpalatte, 4, 1, fp3);
-	fwrite(&impcolors, 4, 1, fp3);
+	fwrite(&imgheader3, sizeof(imgheader3), 1, fp3);
 	
-	fwrite(img3arr, 1, (imgwd3padded * imght3), fp3);
+	fwrite(img3arr, 1, ((imgwd3padded * 3) * imgheader3.info.height), fp3);
 
 
 	/*cleanup*/
-	fclose(fp3);
+	//fclose(fp3);
 	free(img3arr);
 	fclose(fp1);
 	fclose(fp2);
