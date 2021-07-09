@@ -16,50 +16,15 @@ SOFTWARE.
 #include <errno.h>
 #include <string.h>
 #include <stdlib.h>
-
-
-uint32_t swapbytes32 (uint32_t a);
-uint16_t swapbytes16 (uint16_t a);
-int checkendian(void);
-void print_help(void);
-
-typedef struct BITMAPFILEHEADER
-{
-	uint16_t bmsigbytes;
-	uint32_t filesize;
-	uint32_t reserved;
-	uint32_t dataoffset;
-} __attribute__((packed)) BITMAPFILEHEADER_T ;
-
-typedef struct BITMAPINFOHEADER
-{
-	uint32_t headersize;
-	int32_t width;
-	int32_t height;
-	uint16_t colorplanes;
-	uint16_t bitsperpixel;
-	uint32_t compression;
-	uint32_t imagesize;
-	int32_t horizres;
-	int32_t vertres;
-	uint32_t colorpalatte;
-	uint32_t impcolors;
-} __attribute__((packed)) BITMAPINFOHEADER_T ;
-
-typedef struct BITMAPHEADER
-{
-	BITMAPFILEHEADER_T file;
-	BITMAPINFOHEADER_T info;
-} __attribute__((packed)) BITMAPHEADER_T;
-
+#include "ibb.h"
 
 int main(int argc, char *argv[])
 {
 	/*looks for 3 command line arguments.*/
 	
-	if (argc != 4) 
+	if (!(argc == 4 || argc == 5)) 
 	{
-		printf("Only input 3 command line arguments!\n\n");
+		printf("Only input 3 or 4 command line arguments!\n\n");
 		print_help();
 		return 1;
 	}
@@ -388,8 +353,18 @@ int main(int argc, char *argv[])
 
 
 	/*writing new image to file*/
+	char filename[128];
+	if (argc == 5)
+	{
+		strcpy(filename, argv[4]);
+	}
+	else
+	{
+		strcpy(filename, "output.bmp");
+	}
 
-	FILE *fp3 = fopen("output.bmp", "wb");
+	FILE *fp3 = fopen(filename, "wb");
+	
 	imgheader3.file.bmsigbytes = 0x4D42;
 	imgheader3.file.filesize =(54) + (imgwd3padded * 3 * imgheader3.info.height);
 	imgheader3.file.reserved = 0;
@@ -425,7 +400,7 @@ int main(int argc, char *argv[])
 
 
 	/*cleanup*/
-	//fclose(fp3);
+	fclose(fp3);
 	free(img3arr);
 	fclose(fp1);
 	fclose(fp2);
@@ -465,7 +440,7 @@ int checkendian(void)
 void print_help(void)
 {
 	printf("IBB: Image Bit Bashing\n"
-	"Usage: ibb [image1.bmp] [image2.bmp] [operator]\n"
+	"Usage: ibb [image1.bmp] [image2.bmp] [operator] <outputname>\n"
 	"Opertators:\nXOR, xor, ^\nOR, or, |\nAND, and, &\n");
 	
 }
