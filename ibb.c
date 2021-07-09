@@ -17,16 +17,6 @@ SOFTWARE.
 #include <string.h>
 #include <stdlib.h>
 
-#define BMSIG_OFFSET 0x00
-#define FILESIZE_OFFSET 0x02
-#define DATA_OFFSET_OFFSET 0x0A
-
-#define HEADER_SIZE_OFFSET 0x0E
-#define WIDTH_OFFSET 0x12
-#define HEIGHT_OFFSET 0x16
-#define BPP_OFFSET 0x1C
-#define COMPRESSION_OFFSET 0x1E
-
 
 uint32_t swapbytes32 (uint32_t a);
 uint16_t swapbytes16 (uint16_t a);
@@ -283,17 +273,17 @@ int main(int argc, char *argv[])
 
 	if(imgheader1.info.width <= imgheader2.info.width)
 	{
-		imgheader3.info.width = imgheader1.info.width;
+		imgheader3.info.width = imgheader1.info.width - imgwd1padding;
 		imgwd3padding = imgwd1padding;
 	}
 	else
 	{
-		imgheader3.info.width = imgheader2.info.width;
+		imgheader3.info.width = imgheader2.info.width - imgwd2padding;
 		imgwd3padding = imgwd2padding;
 	}
 	
 	
-	/*read images into memory array*/
+	/*read image 1 into memory array*/
 	uint8_t *img1arr = (uint8_t *)malloc(imgheader1.info.width * 3 * imgheader1.info.height);
 	if(img1arr == NULL)
 	{
@@ -302,16 +292,24 @@ int main(int argc, char *argv[])
 		fclose(fp2);
 		return 1;
 	}
+
 	
 	fseek(fp1, imgheader1.file.dataoffset, SEEK_SET);
 
 	for(int i = 0; i < imgheader3.info.height; i++)
 	{
-		fread(img1arr, 1, imgheader3.info.width * 3, fp1);
-		fseek(fp1,(imgheader1.info.width - imgheader3.info.width + imgwd1padding) * 3, SEEK_CUR);
+		fread(&img1arr[i *imgheader3.info.width * 3],
+			  imgheader3.info.width * 3,
+			  1,
+			  fp1);
+		
+		fseek(fp1,
+			  (imgheader1.info.width - imgheader3.info.width) * 3,
+			  SEEK_CUR);
 	}
 
-	
+
+	/*Read image 2 into memory array*/
 	uint8_t *img2arr = (uint8_t *)malloc(imgheader3.info.width * 3 * imgheader3.info.height);
 	if(img2arr == NULL)
 	{
@@ -326,8 +324,11 @@ int main(int argc, char *argv[])
 
 	for(int i = 0; i < imgheader3.info.height; i++)
 	{
-		fread(img2arr, 1, imgheader3.info.width * 3, fp2);
-		fseek(fp2, (imgheader2.info.width - imgheader3.info.width + imgwd2padding) * 3, SEEK_CUR);
+		fread(&img2arr[i * imgheader3.info.width * 3],
+			  imgheader3.info.width * 3,
+			  1,
+			  fp2);
+		fseek(fp2, (imgheader2.info.width - imgheader3.info.width) * 3, SEEK_CUR);
 	}
 
 
@@ -405,6 +406,7 @@ int main(int argc, char *argv[])
 	imgheader3.info.impcolors = 0;
 
 
+	/*swap bytes if big endian*/
 	if (checkendian() == 2)
 	{
 		swapbytes32(imgheader3.file.filesize);
