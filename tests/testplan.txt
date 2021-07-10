@@ -1,0 +1,26 @@
+test plan
+
+
+
+open files(string, fpname) return fp
+
+
+check that files uses bm signature(fp) void
+
+check that file uses bitmapinfoheader(fp) void
+
+read bitmapinfoheader into struct(fp, structptr) void
+
+
+read files into memory(fp) imgptr
+
+smash bits(imgptr, imgptr) imgptr
+
+read values into img header struct (width, height, structptr)
+
+read img3 headers into file(structptr, fp) void
+
+rea img 3 array into file(imgptr, fp) 
+
+deallocate memory(imgptr) void
+close files(fp) void
