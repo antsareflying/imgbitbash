@@ -31,4 +31,25 @@ This program takes a bitwise operator as its third argument. It can either be:
 	+ and
 	+ &
 
+## Example
+
+This:
+
+![sample image 1](https://raw.githubusercontent.com/antsareflying/imgbitbash/main/images/sample1.png)
+
+and this:
+
+![sample image 2](https://raw.githubusercontent.com/antsareflying/imgbitbash/main/images/sample2.png)
+
+using the and operator prodces this:
+
+![and operator output](https://raw.githubusercontent.com/antsareflying/imgbitbash/main/images/outputand.png)
+
+using that xor operator produces this:
+
+![xor operator output](https://raw.githubusercontent.com/antsareflying/imgbitbash/main/images/outputxor.png)
+
+and using the or operator produces this:
+
+![or operator output](https://raw.githubusercontent.com/antsareflying/imgbitbash/main/images/outputor.png)
 
