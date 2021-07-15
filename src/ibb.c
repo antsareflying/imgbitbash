@@ -20,6 +20,7 @@ SOFTWARE.
 
 
 int checkbmsignature(FILE *fp);
+int checkbmpinfoheader(FILE *fp);
 
 int main(int argc, char *argv[])
 {
@@ -97,24 +98,12 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	/*read header into structs*/
-	BITMAPHEADER_T imgheader1, imgheader2;
-
-
-	fread(&imgheader1, sizeof(imgheader1), 1, fp1);
-	fread(&imgheader2, sizeof(imgheader2), 1, fp2);
-
-	/*check if bitmap signature present*/
-
 
 	/*check that both img is using BITMAPINFOHEADER*/
-	if(checkendian() == 2)
-	{
-		swapbytes32(imgheader1.info.headersize);
-		swapbytes32(imgheader2.info.headersize);
-	}
+
+	/*TODO check for other headers*/
 	
-	if (imgheader1.info.headersize != 40)
+	if (checkbmpinfoheader(fp1) == 1)
 	{
 		printf("The first file does not use BITMAPINFOHEADER\n");
 		fclose(fp1);
@@ -122,17 +111,23 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-
-	
-	if (imgheader2.info.headersize != 40)
+	if (checkbmpinfoheader(fp2) == 1)
 	{
 		printf("The second file does not use BITMAPINFOHEADER\n");
 		fclose(fp1);
 		fclose(fp2);
 		return 1;
 	}
-	/*TODO check for other headers*/
-	
+
+	/*read header into structs*/
+	BITMAPHEADER_T imgheader1, imgheader2;
+
+
+	fread(&imgheader1, sizeof(imgheader1), 1, fp1);
+	fread(&imgheader2, sizeof(imgheader2), 1, fp2);
+
+
+
 	if(checkendian() == 2)
 	{
 	/*find height of images*/
@@ -410,6 +405,20 @@ int main(int argc, char *argv[])
 	fclose(fp2);
 
 	
+	return 0;
+}
+
+int checkbmpinfoheader(FILE *fp)
+{
+	fseek(fp, 14, SEEK_SET);
+	uint32_t infoheadersize;
+	fread(infoheadersize, 4, 1, fp);
+	if (infoheadersize != 0x28000000)
+	{
+		fseek(fp, 0, SEEK_SET);
+		return 1;
+	}
+
 	return 0;
 }
 
