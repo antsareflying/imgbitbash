@@ -18,6 +18,9 @@ SOFTWARE.
 #include <stdlib.h>
 #include "ibb.h"
 
+
+int checkbmsignature(FILE *fp);
+
 int main(int argc, char *argv[])
 {
 	/*looks for 3 command line arguments.*/
@@ -76,16 +79,9 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-	/*read header into structs*/
-	BITMAPHEADER_T imgheader1, imgheader2;
-
-
-	fread(&imgheader1, 1, sizeof(imgheader1), fp1);
-	fread(&imgheader2, sizeof(imgheader2), 1, fp2);
 
 	/*check if bitmap signature present*/
-
-	if (imgheader1.file.bmsigbytes != 0x4D42)
+	if(checkbmsignature(fp1) == 1)
 	{
 		printf("The first file is not a .BMP file\n");
 		fclose(fp1);
@@ -93,14 +89,22 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 
-
-	if (imgheader2.file.bmsigbytes != 0x4D42)
+	if (checkbmsignature(fp2) == 1)
 	{
 		printf("The second file is not a .BMP file\n");
 		fclose(fp1);
 		fclose(fp2);
 		return 1;
 	}
+
+	/*read header into structs*/
+	BITMAPHEADER_T imgheader1, imgheader2;
+
+
+	fread(&imgheader1, sizeof(imgheader1), 1, fp1);
+	fread(&imgheader2, sizeof(imgheader2), 1, fp2);
+
+	/*check if bitmap signature present*/
 
 
 	/*check that both img is using BITMAPINFOHEADER*/
@@ -406,6 +410,19 @@ int main(int argc, char *argv[])
 	fclose(fp2);
 
 	
+	return 0;
+}
+
+int checkbmsignature(FILE *fp)
+{
+	char tmpbytes[2];
+	fseek(fp, 0, SEEK_SET);
+	fread(tmpbytes, 2, 1, fp);
+	if(tmpbytes[0] != 'B' || tmpbytes[1] != 'M')
+	{
+		fseek(fp, 0, SEEK_SET);
+		return 1;
+	}
 	return 0;
 }
 
