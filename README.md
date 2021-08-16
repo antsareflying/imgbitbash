@@ -53,3 +53,11 @@ and using the or operator produces this:
 
 ![or operator output](https://raw.githubusercontent.com/antsareflying/imgbitbash/main/images/outputor.png)
 
+
+## Building 
+
+Tested on Linux only but should compile and work with any c11 (c99 not tested) standard compiler. (Only tested with GCC)
+
+To build on linux with GCC type `gcc -o ibb ibb.c ibb.h` in the terminal after cd-ing into the directory
+
+to run type `./ibb` 
